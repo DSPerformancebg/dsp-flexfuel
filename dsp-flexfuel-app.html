@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSP FlexFuel Monitor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Inter:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #080808;
+    --surface: #111111;
+    --border: #1e1e1e;
+    --red: #e01a1a;
+    --white: #f0f0f0;
+    --grey: #555;
+    --green: #22c55e;
+    --mono: 'Share Tech Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── PHONE FRAME ── */
+  .scene {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+    gap: 60px;
+    flex-wrap: wrap;
+  }
+
+  .phone-wrap {
+    position: relative;
+  }
+
+  .phone {
+    width: 320px;
+    height: 660px;
+    background: #0d0d0d;
+    border-radius: 44px;
+    border: 2px solid #222;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px #111,
+      0 40px 80px rgba(0,0,0,0.8),
+      0 0 60px rgba(224,26,26,0.05);
+  }
+
+  /* Notch */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 26px;
+    background: #0d0d0d;
+    border-radius: 20px;
+    z-index: 10;
+    border: 1.5px solid #1a1a1a;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+    padding: 56px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  .brand-ds {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .brand-ds .d { color: var(--white); }
+  .brand-ds .s { color: var(--red); }
+  .brand-ds .perf { color: var(--white); }
+
+  .brand-flex {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .brand-flex .flex { color: var(--white); }
+  .brand-flex .fuel { color: var(--red); }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+  }
+
+  .ble-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #141414;
+    border: 1px solid #232323;
+    border-radius: 20px;
+    padding: 2px 8px;
+  }
+  .ble-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .ble-txt { font-family: var(--mono); font-size: 8px; color: #666; }
+
+  .lang-btn {
+    background: #141414;
+    border: 1px solid #232323;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: #555;
+    cursor: pointer;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .card-label {
+    font-family: var(--mono);
+    font-size: 7px;
+    letter-spacing: 3px;
+    color: var(--grey);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .big-num {
+    font-family: var(--mono);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+  }
+  .big-num .unit { font-size: 20px; color: #333; }
+
+  .bar-bg {
+    height: 5px;
+    background: #161616;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .bar-lbl { font-family: var(--mono); font-size: 7px; color: #2a2a2a; }
+
+  /* ── HISTORY ── */
+  .hist-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 12px;
+  }
+  .hist-head {
+    font-family: var(--mono);
+    font-size: 7px;
+    letter-spacing: 3px;
+    color: var(--grey);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .hist-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #141414;
+  }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-time, .hist-val { font-family: var(--mono); font-size: 9px; color: #333; }
+
+  /* ── DISC BTN ── */
+  .disc-btn {
+    border: 1px solid #1a1a1a;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    margin-top: auto;
+  }
+  .disc-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+  .disc-txt { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: #333; text-transform: uppercase; }
+
+  /* ── RIGHT SIDE INFO ── */
+  .info-panel {
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .info-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .info-ds {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+  }
+  .info-ds .d { color: var(--white); }
+  .info-ds .s { color: var(--red); }
+  .info-ds .p { color: var(--white); }
+
+  .info-title {
+    font-family: var(--display);
+    font-size: 80px;
+    line-height: 0.9;
+  }
+  .info-title .flex { color: var(--white); }
+  .info-title .fuel { color: var(--red); }
+
+  .info-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #333;
+    letter-spacing: 2px;
+    margin-top: 8px;
+  }
+
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+    background: #0e0e0e;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.3s;
+  }
+  .feature:hover { border-color: #2a2a2a; }
+
+  .feat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #1a0000;
+    border: 1px solid #2a0000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .feat-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 3px;
+    letter-spacing: 0.5px;
+  }
+  .feat-desc {
+    font-size: 11px;
+    color: #444;
+    line-height: 1.5;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--red);
+    color: var(--white);
+    text-decoration: none;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+    width: fit-content;
+  }
+  .download-btn:hover { opacity: 0.85; }
+
+  .version-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #2a2a2a;
+    letter-spacing: 2px;
+    margin-top: -16px;
+  }
+
+  /* ── RED GLOW ── */
+  .glow {
+    position: fixed;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(224,26,26,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .scene > * { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+
+<div class="scene">
+
+  <!-- PHONE -->
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+
+        <div class="app-header">
+          <div>
+            <div class="brand-ds">
+              <span class="d">D</span><span class="s">S</span><span class="perf"> Performance</span>
+            </div>
+            <div class="brand-flex">
+              <span class="flex">FLEX</span><span class="fuel">FUEL</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="ble-badge">
+              <div class="ble-dot"></div>
+              <span class="ble-txt">DSP-FlexFuel</span>
+            </div>
+            <div class="lang-btn">BG</div>
+          </div>
+        </div>
+
+        <!-- Ethanol Card -->
+        <div class="card">
+          <div class="card-label">Ethanol Content</div>
+          <div class="big-num" style="color:#e01a1a" id="eth-num">
+            85.0<span class="unit">%</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="eth-bar" style="width:85%;background:#e01a1a"></div>
+          </div>
+          <div class="bar-labels">
+            <span class="bar-lbl">0%</span>
+            <span class="bar-lbl">% ETHANOL</span>
+            <span class="bar-lbl">100%</span>
+          </div>
+        </div>
+
+        <!-- Temp Card -->
+        <div class="card">
+          <div class="card-label">Temperature</div>
+          <div class="big-num" style="color:#38bdf8" id="tmp-num">
+            32.5<span class="unit">°C</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="tmp-bar" style="width:44%;background:#38bdf8"></div>
+          </div>
+          <div class="bar-labels">
+            <span class="bar-lbl">-20°</span>
+            <span class="bar-lbl">Temperature</span>
+            <span class="bar-lbl">100°</span>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="hist-box">
+          <div class="hist-head">Recent Readings</div>
+          <div class="hist-row"><span class="hist-time">12:34:01</span><span class="hist-val">85.0%</span></div>
+          <div class="hist-row"><span class="hist-time">12:33:31</span><span class="hist-val">84.5%</span></div>
+          <div class="hist-row"><span class="hist-time">12:33:01</span><span class="hist-val">84.8%</span></div>
+        </div>
+
+        <!-- Disconnect -->
+        <div class="disc-btn">
+          <div class="disc-dot"></div>
+          <span class="disc-txt">Disconnect</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <div class="info-panel">
+    <div class="info-brand">
+      <div class="info-ds">
+        <span class="d">D</span><span class="s">S</span><span class="p"> Performance</span>
+      </div>
+      <div class="info-title">
+        <span class="flex">FLEX</span><span class="fuel">FUEL</span>
+      </div>
+      <div class="info-sub">MONITOR v1.2</div>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feat-icon">⚡</div>
+        <div>
+          <div class="feat-title">Real-time Ethanol %</div>
+          <div class="feat-desc">Live ethanol content from 0–100% via Bluetooth BLE sensor</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feat-icon">🌡️</div>
+        <div>
+          <div class="feat-title">Fuel Temperature</div>
+          <div class="feat-desc">Accurate temperature monitoring in real time</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feat-icon">⚠️</div>
+        <div>
+          <div class="feat-title">Contamination Detection</div>
+          <div class="feat-desc">Automatic detection of contaminated or out-of-range fuel</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feat-icon">🎨</div>
+        <div>
+          <div class="feat-title">Customizable</div>
+          <div class="feat-desc">Custom gauge colors, EN/BG language, BLE device rename</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <a class="download-btn" href="https://play.google.com/apps/testing/com.flexfuelmonitor" target="_blank">
+        ▶ Google Play — Join Beta
+      </a>
+      <div class="version-badge" style="margin-top:12px">ANDROID 8.0+ · BLUETOOTH BLE · FREE</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Animate values
+  const ethVals = [85.0, 84.2, 86.1, 83.5, 87.3, 85.8];
+  const tmpVals = [32.5, 33.1, 32.8, 34.2, 33.7, 32.1];
+  let idx = 0;
+
+  setInterval(() => {
+    idx = (idx + 1) % ethVals.length;
+    const eth = ethVals[idx];
+    const tmp = tmpVals[idx];
+
+    document.getElementById('eth-num').innerHTML = eth.toFixed(1) + '<span class="unit">%</span>';
+    document.getElementById('eth-bar').style.width = eth + '%';
+
+    document.getElementById('tmp-num').innerHTML = tmp.toFixed(1) + '<span class="unit">°C</span>';
+    const tmpPct = Math.min(100, Math.max(0, (tmp + 20) / 120 * 100));
+    document.getElementById('tmp-bar').style.width = tmpPct + '%';
+  }, 1500);
+</script>
+
+</body>
+</html>
